@@ -14,7 +14,7 @@ import java.util.Set;
 
 import net.fabricmc.mappingio.MappingUtil;
 import net.fabricmc.mappingio.extras.MappingTreeRemapper;
-import net.fabricmc.mappingio.format.proguard.ProGuardFileReader;
+import net.fabricmc.mappingio.format.tiny.Tiny2FileReader;
 import net.fabricmc.mappingio.tree.MappingTree;
 import net.fabricmc.mappingio.tree.MemoryMappingTree;
 import org.objectweb.asm.ClassReader;
@@ -42,8 +42,8 @@ public final class ClassFileRemapper {
     }
 
     public Map<String, String> classMappings() {
-        int obfuscatedNamespace = mappings.getNamespaceId(MappingUtil.NS_TARGET_FALLBACK);
-        int deobfuscatedNamespace = mappings.getNamespaceId(MappingUtil.NS_SOURCE_FALLBACK);
+        int obfuscatedNamespace = mappings.getNamespaceId("official");
+        int deobfuscatedNamespace = mappings.getNamespaceId("named");
         Map<String, String> result = new HashMap<>();
 
         for (MappingTree.ClassMapping mapping : mappings.getClasses()) {
@@ -73,7 +73,7 @@ public final class ClassFileRemapper {
         var tree = new MemoryMappingTree();
 
         try {
-            ProGuardFileReader.read(reader, tree);
+            Tiny2FileReader.read(reader, tree);
         } catch (IOException exception) {
             throw new UncheckedIOException(exception);
         }
@@ -93,10 +93,10 @@ public final class ClassFileRemapper {
             super(Opcodes.ASM9);
             this.mappings = mappings;
             this.delegate = new MappingTreeRemapper(
-                    mappings, MappingUtil.NS_TARGET_FALLBACK, MappingUtil.NS_SOURCE_FALLBACK);
+                    mappings, "official", "named");
             this.index = index;
-            this.fromNamespace = mappings.getNamespaceId(MappingUtil.NS_TARGET_FALLBACK);
-            this.toNamespace = mappings.getNamespaceId(MappingUtil.NS_SOURCE_FALLBACK);
+            this.fromNamespace = mappings.getNamespaceId("official");
+            this.toNamespace = mappings.getNamespaceId("named");
         }
 
         @Override

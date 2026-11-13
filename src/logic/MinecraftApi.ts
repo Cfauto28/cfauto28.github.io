@@ -215,30 +215,19 @@ export function fetchJavaRuntimes() {
 }
 
 export function isUnobfuscated(version: VersionListEntry): boolean {
-    // Not present in the official manifest, but used by entries in EXPERIMENTAL_VERSIONS
-    if (version.type === 'unobfuscated') return true;
-    // Any version released after 2025-12-16 is unobfuscated (starting from 26.1-snapshot-1)
-    if (new Date(version.releaseTime) >= new Date("2025-12-16")) return true;
-    if (version.id === 'c0.0.13a' || version.id === 'c0.0.11a') return true;
-    if (version.id.startsWith('rd-')) return true;
     return false;
 }
 
 function isSupported(version: VersionListEntry): boolean {
-    if(isUnobfuscated(version)) return true;
-    // This version was released after the first snapshot with official mappings,
-    // but its mappings were never published.
-    if (version.id === '1.14_combat-3') return false;
-    // Versions starting from 19w36a (released on 2019-09-04) have official mappings available
-    if (new Date(version.releaseTime) >= new Date("2019-09-04")) return true;
-    // Official mappings were backported to 1.14.4
-    if (version.id === "1.14.4") return true;
+    if (new Date(version.releaseTime) >= new Date("2015-01-28") &&
+        new Date(version.releaseTime) <= new Date("2021-01-15") &&
+        version.type != "snapshot") return true;
     return false;
 }
 
-export function getRemappedJarCacheKey(version: string, download: VersionDownload, mappings: VersionDownload): string {
+export function getRemappedJarCacheKey(version: string, download: VersionDownload, mappings: string): string {
     const jarKey = download.sha1 ?? encodeURIComponent(download.url);
-    const mappingsKey = mappings.sha1 ?? encodeURIComponent(mappings.url);
+    const mappingsKey = encodeURIComponent(mappings);
     return `https://mcsrc.dev/cache/remapped-jars/v${REMAPPED_JAR_CACHE_VERSION}/${version}/${jarKey}/${mappingsKey}.jar`;
 }
 
@@ -299,7 +288,7 @@ async function downloadMinecraftJar(version: VersionListEntry): Promise<Minecraf
     console.log(`Downloading Minecraft jar for version: ${version.id}`);
     const versionManifest = await fetchVersionManifest(version);
     const download = versionManifest.downloads[minecraftJarSide];
-    const mappings = versionManifest.downloads[`${minecraftJarSide}_mappings`];
+    const mappings: string = `https://raw.githubusercontent.com/Cfauto28/SRGTiny/refs/heads/main/mcp/${version.id}-mcp.tiny` /*versionManifest.downloads[`${minecraftJarSide}_mappings`];*/
 
     if (!download) {
         throw new Error(`No ${minecraftJarSide} jar available for Minecraft ${version.id}`);
@@ -315,7 +304,7 @@ async function downloadMinecraftJar(version: VersionListEntry): Promise<Minecraf
         blob,
         metadata: {
             jarSha1: download.sha1,
-            mappingsSha1: mappings?.sha1,
+            mappingsSha1: mappings,
             remapped,
         },
     };
@@ -324,7 +313,7 @@ async function downloadMinecraftJar(version: VersionListEntry): Promise<Minecraf
 async function prepareMinecraftJarBlob(
     version: string,
     download: VersionDownload,
-    mappings?: VersionDownload,
+    mappings?: string,
 ): Promise<{ blob: Blob, remapped: boolean; }> {
     const cacheKey = mappings ? getRemappedJarCacheKey(version, download, mappings) : null;
     const cache = cacheKey && 'caches' in window ? await caches.open(CACHE_NAME) : null;
@@ -339,7 +328,7 @@ async function prepareMinecraftJarBlob(
     };
     const [jarResult, mappingsResult] = await Promise.allSettled([
         minecraftJarSide === 'server' ? fetchServerJar(download, onProgress) : cachedFetch(download.url, onProgress),
-        mappings ? cachedFetch(mappings.url) : Promise.resolve(null)
+        mappings ? cachedFetch(mappings) : Promise.resolve(null)
     ]);
 
     // Both requests must settle before releasing the queue, including on download failure.

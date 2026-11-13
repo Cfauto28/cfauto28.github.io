@@ -1,4 +1,4 @@
-# [https://mcsrc.dev/](https://mcsrc.dev/)
+# [https://cfauto28.github.io/mcpsrc/](https://cfauto28.github.io/mcpsrc/)
 
 Note: This project is not affiliated with Mojang or Microsoft in any way. It does NOT redistribute any Minecraft code or compiled bytecode. The minecraft jar is downloaded directly from Mojang's servers to your browser.
 
